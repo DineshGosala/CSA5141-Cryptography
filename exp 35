@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Function to encrypt plaintext using one-time pad version of Vigenère cipher
+void encrypt(char *plaintext, char *key) {
+    int plaintext_len = strlen(plaintext);
+    int key_len = strlen(key);
+
+    // Encrypt each character of the plaintext with the corresponding key
+    for (int i = 0; i < plaintext_len; i++) {
+        // Apply modular arithmetic to ensure the result stays within the range [0, 25]
+        plaintext[i] = ((plaintext[i] - 'a' + (key[i % key_len] - 'a')) % 26) + 'a';
+    }
+}
+
+int main() {
+    char plaintext[] = "hello";
+    char key[] = {3, 19, 5}; // Example key stream
+
+    printf("Original plaintext: %s\n", plaintext);
+    printf("Key stream: ");
+    for (int i = 0; i < sizeof(key); i++) {
+        printf("%d ", key[i]);
+    }
+    printf("\n");
+
+    encrypt(plaintext, key);
+
+    printf("Encrypted text: %s\n", plaintext);
+
+    return 0;
+}
