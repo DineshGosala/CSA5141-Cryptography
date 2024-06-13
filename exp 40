@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define ALPHABET_SIZE 26
+
+// English letter frequency table
+float english_freq[ALPHABET_SIZE] = {8.167, 1.492, 2.782, 4.253, 12.702, 2.228, 2.015, 6.094, 6.966, 0.153,
+                                     0.772, 4.025, 2.406, 6.749, 7.507, 1.929, 0.095, 5.987, 6.327, 9.056,
+                                     2.758, 0.978, 2.360, 0.150, 1.974, 0.074};
+
+// Function to calculate the letter frequency in the given text
+void calculateFrequency(char *text, int *frequency) {
+    for (int i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            frequency[tolower(text[i]) - 'a']++;
+        }
+    }
+}
+
+// Function to decrypt ciphertext using a given substitution key
+void decrypt(char *ciphertext, char *key, char *plaintext) {
+    int length = strlen(ciphertext);
+    for (int i = 0; i < length; i++) {
+        if (isalpha(ciphertext[i])) {
+            char base = islower(ciphertext[i]) ? 'a' : 'A';
+            plaintext[i] = key[tolower(ciphertext[i]) - 'a'];
+            if (isupper(ciphertext[i])) {
+                plaintext[i] = toupper(plaintext[i]);
+            }
+        } else {
+            plaintext[i] = ciphertext[i];
+        }
+    }
+    plaintext[length] = '\0';
+}
+
+// Function to calculate the correlation between the observed and expected frequencies
+float correlation(int *observed, float *expected) {
+    float sum = 0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        sum += observed[i] * expected[i];
+    }
+    return sum;
+}
+
+// Function to perform the letter frequency attack and print possible plaintexts
+void frequencyAttack(char *ciphertext, int top_plaintexts) {
+    int frequency[ALPHABET_SIZE] = {0};
+    int ciphertext_len = strlen(ciphertext);
+
+    // Calculate letter frequency in the ciphertext
+    calculateFrequency(ciphertext, frequency);
+
+    // Initialize a substitution key
+    char key[ALPHABET_SIZE];
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        key[i] = 'A' + i;
+    }
+
+    // Decrypt the ciphertext using the current key
+    char plaintext[ciphertext_len + 1];
+    decrypt(ciphertext, key, plaintext);
+
+    // Calculate correlation between observed and expected letter frequencies
+    float corr = correlation(frequency, english_freq);
+
+    // Perform swapping to find better keys
+    for (int i = 0; i < ALPHABET_SIZE - 1; i++) {
+        for (int j = i + 1; j < ALPHABET_SIZE; j++) {
+            // Swap characters in the key
+            char temp = key[i];
+            key[i] = key[j];
+            key[j] = temp;
+
+            // Decrypt the ciphertext using the updated key
+            decrypt(ciphertext, key, plaintext);
+
+            // Calculate correlation with the updated key
+            float new_corr = correlation(frequency, english_freq);
+
+            // If correlation improves, keep the new key
+            if (new_corr > corr) {
+                corr = new_corr;
+            } else { // Otherwise, revert the key
+                temp = key[i];
+                key[i] = key[j];
+                key[j] = temp;
+            }
+        }
+    }
+
+    // Print the top possible plaintexts
+    printf("Top %d possible plaintexts:\n", top_plaintexts);
+    for (int i = 0; i < top_plaintexts; i++) {
+        printf("%s (Correlation: %.2f)\n", plaintext, corr);
+    }
+}
+
+int main() {
+    char ciphertext[1000]; // Adjust the size as needed
+    int top_plaintexts;
+
+    printf("Enter the ciphertext: ");
+    fgets(ciphertext, sizeof(ciphertext), stdin);
+    ciphertext[strcspn(ciphertext, "\n")] = '\0'; // Remove newline character if present
+
+    printf("Enter the number of top possible plaintexts to display: ");
+    scanf("%d", &top_plaintexts);
+
+    frequencyAttack(ciphertext, top_plaintexts);
+
+    return 0;
+}
