@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <string.h>
+#include <openssl/des.h>
+
+#define DATA_SIZE 8 // 64 bits (8 bytes) of plain text
+
+void print_hex(const char *label, const unsigned char *data, int len) {
+    printf("%s: ", label);
+    for (int i = 0; i < len; i++) {
+        printf("%02x", data[i]);
+    }
+    printf("\n");
+}
+
+void des_encrypt(const unsigned char *plaintext, unsigned char *ciphertext, const unsigned char *key) {
+    DES_key_schedule schedule;
+    DES_set_key((DES_cblock *)key, &schedule);
+    DES_ecb_encrypt((DES_cblock *)plaintext, (DES_cblock *)ciphertext, &schedule, DES_ENCRYPT);
+}
+
+void des_decrypt(const unsigned char *ciphertext, unsigned char *plaintext, const unsigned char *key) {
+    DES_key_schedule schedule;
+    DES_set_key((DES_cblock *)key, &schedule);
+    DES_ecb_encrypt((DES_cblock *)ciphertext, (DES_cblock *)plaintext, &schedule, DES_DECRYPT);
+}
+
+int main() {
+    // 64-bit key (56 bits used for DES)
+    unsigned char key[8] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef};
+
+    // 64-bit plaintext (8 bytes)
+    unsigned char plaintext[DATA_SIZE] = "01234567";
+
+    // Buffer for ciphertext and decrypted plaintext
+    unsigned char ciphertext[DATA_SIZE];
+    unsigned char decrypted[DATA_SIZE];
+
+    // Encrypt
+    des_encrypt(plaintext, ciphertext, key);
+
+    // Decrypt
+    des_decrypt(ciphertext, decrypted, key);
+
+    // Display results
+    print_hex("Plaintext", plaintext, DATA_SIZE);
+    print_hex("Ciphertext", ciphertext, DATA_SIZE);
+    print_hex("Decrypted", decrypted, DATA_SIZE);
+
+    return 0;
+}
