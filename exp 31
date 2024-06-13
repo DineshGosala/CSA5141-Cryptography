@@ -1,0 +1,92 @@
+#include <stdio.h>
+
+#define BLOCK_SIZE_64 8
+#define BLOCK_SIZE_128 16
+
+// Function to perform left shift on a byte array
+void leftShift(unsigned char *data, int length) {
+    int i;
+    unsigned char overflow = 0;
+    for (i = length - 1; i >= 0; i--) {
+        unsigned char temp = data[i] >> 7;
+        data[i] = (data[i] << 1) | overflow;
+        overflow = temp;
+    }
+}
+
+// Function to perform XOR operation on two byte arrays
+void xorOperation(unsigned char *result, unsigned char *data1, unsigned char *data2, int length) {
+    int i;
+    for (i = 0; i < length; i++) {
+        result[i] = data1[i] ^ data2[i];
+    }
+}
+
+int main() {
+    unsigned char subkey1_64[BLOCK_SIZE_64];
+    unsigned char subkey2_64[BLOCK_SIZE_64];
+    unsigned char subkey1_128[BLOCK_SIZE_128];
+    unsigned char subkey2_128[BLOCK_SIZE_128];
+
+    // Constants for block size of 64 bits
+    unsigned char const64[BLOCK_SIZE_64] = {0x1b, 0, 0, 0, 0, 0, 0, 0};
+
+    // Constants for block size of 128 bits
+    unsigned char const128[BLOCK_SIZE_128] = {
+        0x87, 0, 0, 0, 0, 0, 0, 0,
+        0x43, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    // Initialize subkey1 to all zeros
+    for (int i = 0; i < BLOCK_SIZE_64; i++) {
+        subkey1_64[i] = 0x00;
+    }
+
+    // Perform left shift and XOR operation for block size of 64 bits
+    leftShift(subkey1_64, BLOCK_SIZE_64);
+    xorOperation(subkey1_64, subkey1_64, const64, BLOCK_SIZE_64);
+
+    // Derive subkey2 from subkey1 for block size of 64 bits
+    leftShift(subkey2_64, BLOCK_SIZE_64);
+    xorOperation(subkey2_64, subkey1_64, const64, BLOCK_SIZE_64);
+
+    // Initialize subkey1 to all zeros for block size of 128 bits
+    for (int i = 0; i < BLOCK_SIZE_128; i++) {
+        subkey1_128[i] = 0x00;
+    }
+
+    // Perform left shift and XOR operation for block size of 128 bits
+    leftShift(subkey1_128, BLOCK_SIZE_128);
+    xorOperation(subkey1_128, subkey1_128, const128, BLOCK_SIZE_128);
+
+    // Derive subkey2 from subkey1 for block size of 128 bits
+    leftShift(subkey2_128, BLOCK_SIZE_128);
+    xorOperation(subkey2_128, subkey1_128, const128, BLOCK_SIZE_128);
+
+    // Print subkeys
+    printf("Subkey1 (64 bits): ");
+    for (int i = 0; i < BLOCK_SIZE_64; i++) {
+        printf("%02x ", subkey1_64[i]);
+    }
+    printf("\n");
+
+    printf("Subkey2 (64 bits): ");
+    for (int i = 0; i < BLOCK_SIZE_64; i++) {
+        printf("%02x ", subkey2_64[i]);
+    }
+    printf("\n");
+
+    printf("Subkey1 (128 bits): ");
+    for (int i = 0; i < BLOCK_SIZE_128; i++) {
+        printf("%02x ", subkey1_128[i]);
+    }
+    printf("\n");
+
+    printf("Subkey2 (128 bits): ");
+    for (int i = 0; i < BLOCK_SIZE_128; i++) {
+        printf("%02x ", subkey2_128[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
