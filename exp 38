@@ -1,0 +1,108 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define MAX_SIZE 10
+
+// Function to find the modular multiplicative inverse of a number
+int modInverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++)
+        if ((a * x) % m == 1)
+            return x;
+    return 1;
+}
+
+// Function to calculate the determinant of a 2x2 matrix
+int determinant(int matrix[2][2]) {
+    return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+}
+
+// Function to calculate the inverse of a 2x2 matrix
+void inverseMatrix(int matrix[2][2], int inverse[2][2], int det, int mod) {
+    int temp = matrix[0][0];
+    matrix[0][0] = matrix[1][1];
+    matrix[1][1] = temp;
+    matrix[0][1] = (mod - matrix[0][1]) % mod;
+    matrix[1][0] = (mod - matrix[1][0]) % mod;
+
+    int invDet = modInverse(det, mod);
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            inverse[i][j] = (matrix[i][j] * invDet) % mod;
+        }
+    }
+}
+
+// Function to multiply a 2x2 matrix with a 2x1 matrix (vector)
+void multiplyMatrix(int key[2][2], int vector[2], int result[2], int mod) {
+    result[0] = (key[0][0] * vector[0] + key[0][1] * vector[1]) % mod;
+    result[1] = (key[1][0] * vector[0] + key[1][1] * vector[1]) % mod;
+}
+
+int main() {
+    int key[2][2];
+    int inverseKey[2][2];
+    int mod;
+    int plaintext[MAX_SIZE];
+    int ciphertext[MAX_SIZE];
+    int decrypted[MAX_SIZE];
+    int det;
+
+    printf("Enter the modulus: ");
+    scanf("%d", &mod);
+
+    printf("Enter the key matrix (4 numbers separated by spaces): ");
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            scanf("%d", &key[i][j]);
+        }
+    }
+
+    // Calculate determinant of the key matrix
+    det = determinant(key);
+    if (det == 0 || mod % det == 0) {
+        printf("Invalid key. Determinant must be non-zero and relatively prime to the modulus.\n");
+        return 1;
+    }
+
+    // Calculate the inverse of the key matrix
+    inverseMatrix(key, inverseKey, det, mod);
+
+    int numPairs;
+    printf("Enter the number of plaintext-ciphertext pairs: ");
+    scanf("%d", &numPairs);
+
+    printf("Enter plaintext-ciphertext pairs (each pair separated by a space):\n");
+    for (int i = 0; i < numPairs; i++) {
+        scanf("%d %d", &plaintext[i], &ciphertext[i]);
+    }
+
+    // Chosen plaintext attack
+    printf("Recovered key matrix:\n");
+    int temp[2][2];
+    int vector[2];
+    for (int i = 0; i < numPairs - 1; i++) {
+        for (int j = i + 1; j < numPairs; j++) {
+            // Calculate the difference vectors
+            vector[0] = (ciphertext[i] - ciphertext[j] + mod) % mod;
+            vector[1] = (plaintext[i] - plaintext[j] + mod) % mod;
+
+            // Calculate the intermediate key matrix
+            multiplyMatrix(inverseKey, vector, temp[0], mod);
+            multiplyMatrix(key, temp[0], temp[1], mod);
+
+            // Check if the intermediate key matrix is valid
+            if (determinant(temp) != 0) {
+                // Print the recovered key matrix
+                printf("%d %d\n%d %d\n", temp[0][0], temp[0][1], temp[1][0], temp[1][1]);
+                return 0;
+            }
+        }
+    }
+
+    printf("Unable to recover the key matrix.\n");
+
+    return 0;
+}
