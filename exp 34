@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/evp.h>
+
+#define BLOCK_SIZE 16 // AES block size in bytes
+
+void handleErrors(void)
+{
+    printf("Error occurred\n");
+    exit(EXIT_FAILURE);
+}
+
+void print_hex(const char *label, const unsigned char *data, int len)
+{
+    printf("%s: ", label);
+    for (int i = 0; i < len; i++)
+    {
+        printf("%02x", data[i]);
+    }
+    printf("\n");
+}
+
+void aes_encrypt(const unsigned char *plaintext, int plaintext_len, unsigned char *key,
+                 unsigned char *iv, unsigned char *ciphertext, int *ciphertext_len, int mode)
+{
+    EVP_CIPHER_CTX *ctx;
+
+    if (!(ctx = EVP_CIPHER_CTX_new()))
+        handleErrors();
+
+    if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv))
+        handleErrors();
+
+    if (1 != EVP_EncryptUpdate(ctx, ciphertext, ciphertext_len, plaintext, plaintext_len))
+        handleErrors();
+
+    if (1 != EVP_EncryptFinal_ex(ctx, ciphertext + *ciphertext_len, ciphertext_len))
+        handleErrors();
+
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+void aes_decrypt(const unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
+                 unsigned char *iv, unsigned char *plaintext, int *plaintext_len, int mode)
+{
+    EVP_CIPHER_CTX *ctx;
+
+    if (!(ctx = EVP_CIPHER_CTX_new()))
+        handleErrors();
+
+    if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv))
+        handleErrors();
+
+    if (1 != EVP_DecryptUpdate(ctx, plaintext, plaintext_len, ciphertext, ciphertext_len))
+        handleErrors();
+
+    if (1 != EVP_DecryptFinal_ex(ctx, plaintext + *plaintext_len, plaintext_len))
+        handleErrors();
+
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+int main()
+{
+    unsigned char key[] = "0123456789abcdef"; // 128-bit key
+    unsigned char iv[] = "1234567890abcdef";  // 128-bit IV
+    unsigned char plaintext[] = "Hello, world!"; // Plain text to encrypt
+    int plaintext_len = strlen((char *)plaintext);
+
+    // Determine the required buffer sizes
+    int ciphertext_len = ((plaintext_len + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE;
+    unsigned char ciphertext[ciphertext_len];
+    int decrypted_len = ciphertext_len;
+    unsigned char decrypted[decrypted_len];
+
+    // Encrypt using ECB mode
+    aes_encrypt(plaintext, plaintext_len, key, iv, ciphertext, &ciphertext_len, EVP_CIPHER_ECB());
+    printf("ECB Encrypted text: ");
+    print_hex("", ciphertext, ciphertext_len);
+
+    // Decrypt using ECB mode
+    aes_decrypt(ciphertext, ciphertext_len, key, iv, decrypted, &decrypted_len, EVP_CIPHER_ECB());
+    printf("ECB Decrypted text: %s\n", decrypted);
+
+    // Encrypt using CBC mode
+    aes_encrypt(plaintext, plaintext_len, key, iv, ciphertext, &ciphertext_len, EVP_CIPHER_CBC());
+    printf("CBC Encrypted text: ");
+    print_hex("", ciphertext, ciphertext_len);
+
+    // Decrypt using CBC mode
+    aes_decrypt(ciphertext, ciphertext_len, key, iv, decrypted, &decrypted_len, EVP_CIPHER_CBC());
+    printf("CBC Decrypted text: %s\n", decrypted);
+
+    // Encrypt using CFB mode
+    aes_encrypt(plaintext, plaintext_len, key, iv, ciphertext, &ciphertext_len, EVP_CIPHER_CFB());
+    printf("CFB Encrypted text: ");
+    print_hex("", ciphertext, ciphertext_len);
+
+    // Decrypt using CFB mode
+    aes_decrypt(ciphertext, ciphertext_len, key, iv, decrypted, &decrypted_len, EVP_CIPHER_CFB());
+    printf("CFB Decrypted text: %s\n", decrypted);
+
+    return 0;
+}
